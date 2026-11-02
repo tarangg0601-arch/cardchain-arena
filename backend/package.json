@@ -1,0 +1,27 @@
+{
+  "name": "tcg-backend",
+  "version": "1.0.0",
+  "description": "API server for the Hyperledger Fabric trading card game",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "start:local": "node src/server.js --mode=local",
+    "start:fabric": "node src/server.js --mode=fabric",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.6",
+    "@hyperledger/fabric-gateway": "^1.13.0",
+    "@hyperledger/fabric-protos": "^0.3.7",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  },
+  "license": "Apache-2.0"
+}

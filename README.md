@@ -1,247 +1,329 @@
-# Trading Card Game on Hyperledger Fabric
+# CardChain Arena
 
-A web-based trading card game whose players, cards, ownership, battles, rewards and trades are
-managed by a Hyperledger Fabric smart contract. Players register, log in, build a deck, battle
-other players and trade cards. Accounts and passwords are kept off-chain by the backend.
+A browser-based trading card game built with **React**, **Node.js**, and **Hyperledger Fabric**. Players collect cards, build a deck, challenge other players, trade cards, open card packs, and track game activity through a ledger explorer.
 
-This is the **100% build** for the first evaluation.
+The application can run against a local JSON ledger for development or connect to a Hyperledger Fabric test network.
 
-## Features in this build
+## Features
 
-- Account registration, login, logout, persistent sessions with expiry, password hashing (scrypt),
-  login attempt limiting, and protected game routes
-- Each account linked to an on-chain player created by `RegisterPlayer` with 3 starter cards
-  (2 Common, 1 Rare) and 100 coins
-- `InitLedger` demo data: `player1` and `player2` with 4 cards each, safe to run repeatedly
-- Battles with 3 cards per side: the player picks their own 3 cards (or a random pick) and the
-  opponent's 3 cards stay hidden and are drawn by the contract from the transaction ID. Ownership and
-  lock validation, rarity bonuses, Fire > Air > Earth > Water > Fire type advantage (x1.2 attack),
-  round results, Elo ratings, XP, win streaks, draws, +20 coins for the winner, and a 3-4 second
-  fight animation before the result
-- Deterministic winner rewards via `RewardWinner`, called only from inside `Battle`, with odds that
-  improve with rating and win streak
-- Trade requests: choose what you give and what you want from a list of every other card (owners
-  hidden). `CreateTrade` checks the recipient really owns the requested card and rejects it otherwise,
-  then locks both cards; `AcceptTrade` or `DeclineTrade` (recipient only) and `CancelTrade` (creator only)
-- Card shop: `BuyCardPack` spends coins and mints a card with the pack's odds (Standard, Premium, Elite)
-- Friends: `SendFriendRequest` by username, `RespondFriendRequest` (accept or decline), `RemoveFriend`,
-  all recorded on the ledger; friends are listed first when choosing an opponent or trade partner
-- Reads: player details, player cards, open trades, player trade history, battle history, leaderboard, ledger stats
-- **Ledger explorer**: real Fabric blocks read from the peer (via the `qscc` system chaincode) showing
-  block hashes, transaction IDs, the submitting identity, endorsing organisations, validation codes and
-  the world-state keys each transaction wrote, plus a **Verify chain** check and a list of rejected
-  transactions
-- Three ledger modes: **Fabric**, **Local** (persistent JSON ledger running the same contract code)
-  and **Auto** (Fabric with fallback to Local at startup)
-- React UI with a sidebar: Dashboard (with your cards), My deck, Battle arena, Trade market, Card shop,
-  Friends, Leaderboard and Ledger explorer; badges for incoming trade and friend requests; coin balance;
-  live network status; demo player switcher; and a receipt with the block number and transaction ID
-  after every write
-- Five visual themes chosen with the **Theme** button (sidebar and login page): Arcane, Forge,
-  Forest, Frost and Infernal. Each has its own colours, fonts, panel textures and animated background
-  (embers, fireflies, snow). The choice is kept in the browser and only changes the look
-- Code-drawn card artwork: each card shows its element emblem over an element scene, with rays,
-  sparkles and gems that grow with rarity
-- 99 automated tests across chaincode, backend and frontend
+- **Player accounts** – registration, login, logout, persistent sessions, and password hashing.
+- **Card collection and deck** – view owned cards and filter the collection by card attributes.
+- **Battles** – choose an opponent and three cards, resolve a three-round match, and view battle results and history. The opponent's cards are selected by the game logic rather than by the challenger.
+- **Player ratings and rewards** – battle results update player statistics, experience, coins, and ratings. Winning a battle can also award a card.
+- **Card shop** – spend in-game coins on Standard, Premium, and Elite card packs.
+- **Trading** – create, accept, decline, and cancel card trade requests. Cards involved in an open trade are locked until the trade is resolved.
+- **Friends** – send and respond to friend requests, manage your friends list, and use it to find battle or trade partners.
+- **Leaderboard** – compare player ratings and battle records.
+- **Ledger explorer** – inspect blocks and transactions, view transaction details, and run the available ledger integrity check.
+- **Network status** – see whether the application is using Hyperledger Fabric or the local demonstration ledger.
+- **Themes and card artwork** – choose from five visual themes: Arcane, Forge, Forest, Frost, and Infernal. Card artwork is rendered in the frontend.
 
-Not in this build (reserved for the final evaluation): commit-reveal battles, card fusion, and the
-card provenance/audit view.
+## Technology
 
-## Project structure
+| Part | Technologies |
+|---|---|
+| Frontend | React 19, React Router, Vite, CSS |
+| Backend | Node.js, Express 5 |
+| Smart contract | JavaScript, Hyperledger Fabric Contract API and Fabric Shim |
+| Fabric connection | Hyperledger Fabric Gateway over gRPC/TLS |
+| Tests | Node.js test runner, Vitest, Testing Library, Supertest |
 
-```
-chaincode/            Hyperledger Fabric smart contract (JavaScript)
-  lib/rules.js          Pure game rules: stats, battle maths, Elo, reward odds, card generation
-  lib/tcgGame.js        All transactions (InitLedger, RegisterPlayer, Battle, RewardWinner, trades, reads)
-  lib/tcgContract.js    Fabric Contract class exposing tcgGame.js as chaincode functions
-  test/                 Contract tests against an in-memory Fabric-like stub
-backend/              Express API
-  src/auth/             Accounts, password hashing, sessions (off-chain, data/auth.json)
-  src/ledger/           fabricLedger.js (Fabric Gateway), localLedger.js (JSON ledger), mode selection,
-                        blockDecoder.js + explorer.js (block decoding, hash checks), tracker.js (rejected txs)
-  src/gameService.js    Game actions, always performed as the logged-in player
-  src/app.js            HTTP routes and error handling
-  test/                 API, auth, ledger-mode and persistence tests
-frontend/             React (Vite) user interface
-  src/pages/            Login, Register, Dashboard, Deck, Battle, Trade, Leaderboard, Ledger explorer
-  src/components/       Sidebar layout, trading card and card art, battle result, network status
-  src/theme/            Theme list, theme picker, background effects and themes.css
-  src/test/             Component, auth-flow and explorer tests
-scripts/fabric-network.sh   Start the Fabric test network and deploy the chaincode
-docs/                 Game rules, Fabric setup and demonstration guide
+## How it is structured
+
+```text
+cardchain-arena/
+├── chaincode/
+│   ├── index.js
+│   ├── lib/
+│   │   ├── rules.js          # Card generation and game calculations
+│   │   ├── tcgGame.js        # Ledger transactions and queries
+│   │   └── tcgContract.js    # Fabric contract interface
+│   └── test/                 # Chaincode tests
+├── backend/
+│   ├── src/
+│   │   ├── auth/             # Accounts, password hashing and sessions
+│   │   ├── ledger/           # Fabric and local ledger adapters, explorer
+│   │   ├── app.js            # Express API routes
+│   │   ├── config.js         # Environment-based configuration
+│   │   ├── gameService.js    # Game operations used by the API
+│   │   └── server.js         # Backend startup
+│   ├── test/                 # Backend tests
+│   └── .env.example          # Example backend configuration
+├── frontend/
+│   ├── src/
+│   │   ├── auth/             # Authentication state
+│   │   ├── components/       # Shared UI components
+│   │   ├── ledger/           # Ledger state and formatting
+│   │   ├── pages/            # Game pages
+│   │   ├── test/             # Frontend tests
+│   │   └── theme/            # Themes and theme effects
+│   └── vite.config.js
+├── docs/
+│   ├── DEMO_GUIDE.md         # Walkthrough for demonstrating the game
+│   ├── FABRIC_SETUP.md       # Detailed Fabric test-network instructions
+│   └── GAME_RULES.md         # Card, battle, reward and trading rules
+├── scripts/
+│   └── fabric-network.sh     # Start, deploy and stop the Fabric test network
+├── package.json              # Root-level development commands
+└── README.md
 ```
 
 ## Requirements
 
-- Node.js **22 LTS** (20.19 or newer also works) and npm
-- For Fabric mode only: Docker, and Linux/macOS or Windows with WSL2 (see `docs/FABRIC_SETUP.md`)
+For local development:
 
-## Quick start (Local mode, no Docker needed)
+- Node.js 22 or later
+- npm (included with Node.js)
+
+For Hyperledger Fabric mode, you will also need:
+
+- Docker and Docker Compose
+- Git, `curl`, and `jq`
+- Linux, macOS, or Windows using WSL2
+- The Hyperledger Fabric samples, binaries, and test-network setup
+
+The Fabric-specific setup is covered in [docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md).
+
+## Run locally
+
+Local mode does not require Docker or a Fabric network. It uses the same game rules with a persistent JSON ledger stored under `backend/data/`.
+
+### 1. Install dependencies
+
+Run these commands from the project root:
 
 ```bash
-npm run setup          # installs chaincode, backend and frontend dependencies
-npm run build          # builds the React app
-npm run start:local    # starts the backend on http://localhost:4000
+npm run setup
 ```
 
-Open http://localhost:4000 and click **Continue as player1**, or create your own account.
+This installs the dependencies for the chaincode, backend, and frontend.
 
-For frontend development with hot reload, run `npm run start:local` in one terminal and
-`npm run dev:frontend` in another, then open http://localhost:5173.
+### 2. Set up backend configuration
 
-## Running with Hyperledger Fabric
+Copy the example environment file if you want to customise the backend settings.
+
+**Windows PowerShell:**
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+**Linux or macOS:**
 
 ```bash
-./scripts/fabric-network.sh up       # needs fabric-samples next to this folder
+cp backend/.env.example backend/.env
+```
+
+The default values are suitable for a local demonstration. See [Configuration](#configuration) before changing them.
+
+### 3. Build the frontend
+
+```bash
+npm run build
+```
+
+### 4. Start the backend in local mode
+
+```bash
+npm run start:local
+```
+
+Open [http://localhost:4000](http://localhost:4000) in your browser. You can sign in with a demonstration account or register a new account.
+
+When demo mode is enabled, the default demonstration accounts are:
+
+| Username | Password |
+|---|---|
+| `player1` | `demo1234` |
+| `player2` | `demo1234` |
+
+These are demonstration credentials. Change the password or disable demo mode before making the application available to other people.
+
+### Frontend development with hot reload
+
+For frontend development, run the backend and Vite development server in separate terminals.
+
+**Terminal 1 – backend:**
+
+```bash
+npm run start:local
+```
+
+**Terminal 2 – frontend:**
+
+```bash
+npm run dev:frontend
+```
+
+Open [http://localhost:5173](http://localhost:5173). Vite forwards `/api` requests to the backend at `http://localhost:4000` by default. Set `BACKEND_URL` when the backend is running at a different address.
+
+## Run with Hyperledger Fabric
+
+Fabric mode connects the backend to a peer through the Fabric Gateway. The included helper script uses the standard Hyperledger Fabric test network.
+
+### 1. Prepare the Fabric test network
+
+Follow the prerequisites and installation steps in [docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md). By default, the helper script expects `fabric-samples` in a sibling directory next to this repository:
+
+```text
+workspace/
+├── fabric-samples/
+└── cardchain-arena/
+```
+
+If your `fabric-samples` directory is elsewhere, set `FABRIC_SAMPLES` when running the helper script and configure `FABRIC_CRYPTO_PATH` in `backend/.env`.
+
+### 2. Start the network and deploy the chaincode
+
+Run these commands from the project root in a Bash-compatible terminal (WSL2 on Windows):
+
+```bash
+./scripts/fabric-network.sh up
 ./scripts/fabric-network.sh deploy
+```
+
+The script creates the `mychannel` channel and deploys the chaincode named `tcg` by default.
+
+### 3. Configure and start the application
+
+Copy `backend/.env.example` to `backend/.env` if you have not already done so. The example configuration matches the standard Fabric test-network paths and connection settings.
+
+Build the frontend and start the backend in Fabric-only mode:
+
+```bash
 npm run build
 npm run start:fabric
 ```
 
-Full instructions, peer CLI commands for inspecting the ledger, and troubleshooting are in
-[docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md).
+Open [http://localhost:4000](http://localhost:4000). The application status should report **Hyperledger Fabric** as the active ledger.
 
-## Operating modes
+For Fabric CLI queries, chaincode upgrades, shutdown instructions, and troubleshooting, see [docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md).
+
+## Ledger modes
+
+The backend selects its ledger mode when it starts.
 
 | Command | Mode | Behaviour |
 |---|---|---|
-| `npm run start:fabric` | Fabric | Connects to Fabric; refuses to start if it cannot |
-| `npm run start:local` | Local | Uses `backend/data/local-ledger.json` |
-| `npm start` | Auto | Tries Fabric at startup; falls back to Local and shows the reason |
+| `npm run start:local` | Local | Uses the JSON ledger in `backend/data/`. Does not require Fabric. |
+| `npm run start:fabric` | Fabric | Connects to Fabric and exits with an error if the network is unavailable. |
+| `npm start` | Auto | Tries Fabric first and uses the local ledger if Fabric cannot be reached during startup. |
 
-`LEDGER_MODE` in `backend/.env` sets the default for `npm start`. The mode is fixed at startup:
-a failed Fabric transaction is reported as an error and is never retried on the local ledger.
-The status panel in the sidebar (and on the login page) always shows which mode is active.
+You can also set `LEDGER_MODE` in `backend/.env` to `auto`, `fabric`, or `local` for the default `npm start` command.
 
-## What runs where
+**Local mode is not a blockchain.** It runs the game logic against a persistent JSON file and provides a simulated block history for development and demonstrations. It does not provide Fabric peers, endorsement, ordering, or consensus.
 
-| Data | Fabric mode | Local mode |
+In auto mode, fallback happens only during startup. If the backend has connected to Fabric and Fabric later becomes unavailable, requests fail; the application does not switch ledgers in the middle of a session or retry a failed Fabric transaction against the local ledger.
+
+## Configuration
+
+Backend settings are read from `backend/.env`. Unset values use the defaults shown below.
+
+| Variable | Default | Description |
 |---|---|---|
-| Players, cards, ownership, XP, ratings, battles, rewards, trades | Fabric world state, endorsed by the peers and committed by the orderer | `backend/data/local-ledger.json` |
-| Blocks in the Ledger explorer | Real blocks fetched from the peer and decoded | A simulated hash-linked log, one transaction per block, labelled "simulated" |
-| Game rules | Chaincode on the peers | The same `chaincode/lib/tcgGame.js`, run by the backend |
-| Accounts, password hashes, sessions | `backend/data/auth.json` (never on the ledger) | same |
+| `PORT` | `4000` | HTTP port for the backend. |
+| `LEDGER_MODE` | `auto` | Default ledger mode: `auto`, `fabric`, or `local`. |
+| `DATA_DIR` | `./data` | Backend data directory, resolved relative to `backend/`. |
+| `AUTH_FILE` | `./data/auth.json` | File used for accounts and sessions. |
+| `LOCAL_LEDGER_FILE` | `./data/local-ledger.json` | Persistent local ledger file. |
+| `SESSION_TTL_HOURS` | `12` | Session lifetime in hours. |
+| `DEMO_MODE` | `true` | Enables demonstration login shortcuts and demo accounts. |
+| `DEMO_PASSWORD` | `demo1234` | Password used by the demonstration accounts. |
+| `FABRIC_CHANNEL` | `mychannel` | Fabric channel name. |
+| `FABRIC_CHAINCODE` | `tcg` | Deployed chaincode name. |
+| `FABRIC_MSP_ID` | `Org1MSP` | Client organisation MSP ID. |
+| `FABRIC_PEER_ENDPOINT` | `localhost:7051` | Peer endpoint used by the Gateway client. |
+| `FABRIC_PEER_HOST_ALIAS` | `peer0.org1.example.com` | TLS hostname override for the peer. |
+| `FABRIC_CRYPTO_PATH` | Fabric samples Org1 crypto directory | Base directory containing the organisation's certificates and keys. |
+| `FABRIC_CERT_DIR` | Derived from `FABRIC_CRYPTO_PATH` | Directory containing the client signing certificate. |
+| `FABRIC_KEY_DIR` | Derived from `FABRIC_CRYPTO_PATH` | Directory containing the client private key. |
+| `FABRIC_TLS_CERT_PATH` | Derived from `FABRIC_CRYPTO_PATH` | Peer TLS CA certificate path. |
+| `FABRIC_CONNECT_TIMEOUT_MS` | `5000` | Fabric connection timeout in milliseconds. |
+| `FRONTEND_DIST` | `../frontend/dist` | Built frontend directory served by the backend. |
 
-Local mode keeps the same rules and the same all-or-nothing transaction behaviour (a failed
-transaction writes nothing), but it is **not a blockchain**: there are no peers, signatures,
-consensus or immutable history. Use it only when Fabric is unavailable.
+The Vite development server uses `BACKEND_URL` for its `/api` proxy target. It defaults to `http://localhost:4000` and is set in the environment of the frontend development process, not in `backend/.env`.
 
-**Trust model.** The backend signs every Fabric transaction with one application identity
-(`User1@org1.example.com`); players are not individual Fabric identities. The backend
-authenticates each user and passes their own player ID to the contract, and the contract enforces
-the game rules and role checks (card ownership, only the recipient can accept a trade, only the
-creator can cancel it, rewards only through battles). This is the usual custodial design for a
-web game on a permissioned network.
+### Deployment note
 
-## Demo accounts
-
-| Username | Password | Player ID |
-|---|---|---|
-| player1 | demo1234 | player1 |
-| player2 | demo1234 | player2 |
-
-With `DEMO_MODE=true` (default) the login page has one-click buttons for these two, and the sidebar
-has a **Demo player switcher**. The switcher lists the demo players plus accounts that have been
-signed in on this browser with their own password, so it never lets one registered user act as
-another. Set `DEMO_MODE=false` to turn the shortcuts off. **Log out** signs out every account on
-the browser.
-
-See [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md) for a step-by-step presentation script, including
-card selections that produce a win and a draw.
+Demo mode is enabled by default to make local demonstrations easier. Before exposing the application on a shared or public network, set `DEMO_MODE=false`, review all environment settings, and use Fabric mode with appropriately managed credentials. Do not commit `backend/.env`, private keys, certificates containing secrets, or runtime data.
 
 ## Game rules
 
-Summary: rarity bonus +0/5/10/15% on attack and defense; type advantage x1.2 attack;
-damage = effective attack - opponent's effective defense; more damage wins the round; more rounds
-wins the battle; Elo K = 32; XP 20/10/5 per round win/draw/loss; reward rarity odds from 60/28/10/2
-improving with rating and win streak; 100 starting coins, +20 per win; packs cost 30, 75 and 150 coins. Formulas and worked examples are in
-[docs/GAME_RULES.md](docs/GAME_RULES.md).
+The game uses elemental card types, rarity-based stat bonuses, three-round battles, player ratings, experience, in-game coins, card packs, friendships, and card trades. The detailed calculations, card generation rules, reward odds, and worked examples are documented in [docs/GAME_RULES.md](docs/GAME_RULES.md).
 
-## Testing
+For a guided walkthrough of the main screens and game flows, see [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md).
+
+## Tests
+
+Run all three test suites from the project root:
 
 ```bash
 npm test
 ```
 
-| Suite | Tests | Covers |
-|---|---|---|
-| `chaincode` (node:test) | 34 | Rules maths, InitLedger idempotency, registration and coins, wins, draws, opponent card draw, invalid battles, lock checks, RewardWinner protection, trade create/accept/decline/cancel, requesting a card the recipient does not own, unauthorized and conflicting operations leave state unchanged, card packs, friends, leaderboard, ledger stats |
-| `backend` (node:test + supertest) | 41 | Register/login/logout/session expiry/lockout, demo-login limits, passwords kept off the ledger, failed registration leaves no account, battles and trades through the API, local ledger persistence across restarts, auto/fabric mode selection, Fabric commit-status handling and error mapping, no false success on rejected writes, block log and write sets, chain verification detecting edited blocks, rejected-transaction feed, decoding two real Fabric blocks (test fixtures), opponent cards cannot be chosen by the browser, anonymous card catalog, trade decline and notifications, shop and friends through the API |
-| `frontend` (Vitest + Testing Library) | 19 | Deck display, trade requests with the anonymous catalog, smart contract rejections, accept/decline, hidden opponent cards, random pick, fight animation then result, shop purchase and insufficient coins, friends, login/logout/expired session, ledger explorer, transaction receipts |
+Run an individual suite when needed:
 
-Each folder can also be tested on its own with `npm test` inside it.
+```bash
+npm --prefix chaincode test
+npm --prefix backend test
+npm --prefix frontend test
+```
 
-## Configuration
+The chaincode and backend suites use Node.js's built-in test runner. The frontend suite uses Vitest and Testing Library.
 
-Copy `backend/.env.example` to `backend/.env`. Main settings:
+## API overview
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | 4000 | Backend port |
-| `LEDGER_MODE` | auto | `auto`, `fabric` or `local` |
-| `DATA_DIR` | ./data | Folder for `auth.json` and `local-ledger.json` |
-| `SESSION_TTL_HOURS` | 12 | Session lifetime |
-| `DEMO_MODE` / `DEMO_PASSWORD` | true / demo1234 | Demo shortcuts and demo account password |
-| `FABRIC_CHANNEL` / `FABRIC_CHAINCODE` | mychannel / tcg | Channel and chaincode name |
-| `FABRIC_PEER_ENDPOINT` | localhost:7051 | Gateway peer |
-| `FABRIC_CRYPTO_PATH` | ../../fabric-samples/test-network/organizations/peerOrganizations/org1.example.com | Org1 crypto material |
+The backend exposes a JSON API under `/api`. The main route groups are:
 
-## API
+| Route group | Purpose |
+|---|---|
+| `/api/auth` | Registration, login, logout, session details, and demonstration login. |
+| `/api/players` | Player profiles and player listings. |
+| `/api/battles` | Create battles and retrieve battle history/details. |
+| `/api/trades` | Create and manage card trades. |
+| `/api/cards` and `/api/shop` | Browse the card catalogue and purchase card packs. |
+| `/api/friends` | Friend requests and friend management. |
+| `/api/leaderboard` | Player rankings. |
+| `/api/ledger` | Ledger summary, blocks, transaction details, verification, and rejected writes. |
 
-All routes are under `/api`. Everything except `status` and the `auth/*` login routes needs
-`Authorization: Bearer <token>`. Errors are returned as `{ "error": { "code", "message" } }`.
+Most game and ledger routes require a bearer session token. API errors are returned as JSON with an `error` object containing a code and message. The route implementation is in [`backend/src/app.js`](backend/src/app.js).
 
-| Method | Route | Purpose |
-|---|---|---|
-| GET | /status | Active ledger mode and fallback reason |
-| POST | /auth/register | `{ username, password, confirmPassword }` |
-| POST | /auth/login | `{ username, password }` |
-| POST | /auth/demo-login | `{ playerId }` for seeded demo players (demo mode only) |
-| POST | /auth/logout | Revokes the session |
-| GET | /auth/me | Current account and player |
-| GET | /players, /leaderboard | Players ordered by rating |
-| GET | /players/:id, /players/:id/cards | Player details and cards |
-| POST | /battles | `{ opponentId, myCardIds[3] }`; the contract draws the opponent's cards |
-| GET | /battles/mine, /battles/:id | Battle history and details |
-| GET | /trades/open, /trades/mine | Open trades, own trade history |
-| POST | /trades | `{ toPlayer, offeredCardId, requestedCardId }` |
-| POST | /trades/:id/accept, /trades/:id/decline, /trades/:id/cancel | Accept or decline (recipient), cancel (creator) |
-| GET | /cards/catalog | Every card the player does not own, without owner or lock details |
-| GET | /shop/packs, POST /shop/buy | Card packs; buy with `{ packId }` |
-| GET | /friends | Friends, incoming and outgoing requests |
-| POST | /friends/requests | `{ username }` |
-| POST | /friends/requests/:id/accept, /friends/requests/:id/decline, /friends/:playerId/remove | Respond to a request or remove a friend |
-| GET | /me/notifications | Counts of incoming trade and friend requests |
-| GET | /ledger/summary | Block height, transaction counts, ledger stats, latest game transaction |
-| GET | /ledger/blocks?before=&limit=, /ledger/blocks/:n | Decoded blocks, newest first |
-| GET | /ledger/verify | Recompute all block hashes and check the chain links |
-| GET | /ledger/rejected | Recently rejected write transactions (kept in memory) |
+## Data and identity model
 
-## Chaincode functions
+- Account credentials and browser sessions are stored off-chain by the backend. Passwords are hashed before storage.
+- Player records, cards, ownership, battles, rewards, trades, and friend relationships are managed by the game ledger.
+- In Fabric mode, the backend connects using an application identity from the Fabric test network. Individual players authenticate with the application; they do not each use a separate Fabric identity.
+- In local mode, ledger state is stored in `backend/data/local-ledger.json`, while account data is stored in `backend/data/auth.json`.
 
-Writes: `InitLedger`, `RegisterPlayer(playerId, username)`,
-`Battle(challengerId, challengerCardsJson, opponentId)`, `RewardWinner(winnerId)` (only callable from
-`Battle`), `CreateTrade(tradeId, fromPlayer, offeredCardId, toPlayer, requestedCardId)`,
-`AcceptTrade(tradeId, acceptingPlayer)`, `DeclineTrade(tradeId, playerId)`, `CancelTrade(tradeId, playerId)`,
-`BuyCardPack(playerId, packId)`, `SendFriendRequest(requestId, fromPlayer, toUsername)`,
-`RespondFriendRequest(requestId, playerId, ACCEPT|DECLINE)`, `RemoveFriend(playerId, friendId)`.
+This is an application-managed identity model for a game running on a permissioned ledger, not a self-custody wallet application.
 
-Reads: `PlayerExists`, `GetPlayer`, `GetCard`, `GetPlayerCards`, `GetAllCards`, `GetLeaderboard`,
-`GetLedgerStats`, `GetOpenTrades`, `GetPlayerTrades`, `GetBattle`, `GetPlayerBattles`, `GetCardPacks`,
-`GetFriends`.
+## Reset local data
 
-## Resetting data
+To reset local demonstration data:
 
-- Local mode: stop the backend and delete `backend/data/`.
-- Fabric mode: `./scripts/fabric-network.sh down`, then `up` and `deploy`. Delete
-  `backend/data/auth.json` to remove accounts too.
+1. Stop the backend.
+2. Delete the `backend/data/` directory.
+3. Start the application again with `npm run start:local`.
+
+The backend will initialise a fresh local ledger and create the configured demonstration data. This removes local accounts and game progress stored in that directory.
+
+To reset the Fabric test network, use the shutdown and redeployment steps in [docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md). The Fabric network reset removes its ledger data; backend account data in `backend/data/auth.json` is stored separately.
 
 ## Troubleshooting
 
-| Problem | Fix |
+| Problem | What to check |
 |---|---|
-| Blank page at :4000 | Run `npm run build` first, or use `npm run dev:frontend` on :5173 |
-| "Cannot reach the backend server" | Start the backend; check `PORT` |
-| Amber "Local demo ledger" status when you expected Fabric | The status panel shows why Fabric failed; use `npm run start:fabric` to see the error at startup |
-| `... local-ledger.json is not valid JSON` | The file was edited by hand; fix it or delete it to start over (the backend never resets it silently) |
-| "Too many failed attempts" | Wait one minute after 5 wrong passwords |
+| The page at `localhost:4000` is blank or unavailable | Run `npm run build` before starting the backend, and confirm the backend is running. For frontend development, use `npm run dev:frontend` and open port `5173`. |
+| The frontend cannot reach the API | Confirm the backend is running on port `4000`, or set `BACKEND_URL` to the correct backend URL for Vite. |
+| The application starts in local mode instead of Fabric mode | Check the network status in the app and the backend startup output. Use `npm run start:fabric` to require Fabric and see connection errors directly. |
+| Fabric credentials are not found | Check `FABRIC_CRYPTO_PATH` and confirm the certificate, private key, and TLS CA files exist. |
+| The peer at `localhost:7051` cannot be reached | Confirm Docker is running and the Fabric test network is up. |
+| The chaincode is unavailable | Run the deploy step in [docs/FABRIC_SETUP.md](docs/FABRIC_SETUP.md) and check the configured channel and chaincode names. |
+| A local ledger JSON file cannot be parsed | Stop the backend and inspect the file. For a clean local reset, remove `backend/data/` and start again. |
+| Login is temporarily blocked after repeated incorrect passwords | Wait for the lockout period to expire, then try again. |
+
+## Further documentation
+
+- [Fabric setup and deployment](docs/FABRIC_SETUP.md)
+- [Game rules](docs/GAME_RULES.md)
+- [Demonstration guide](docs/DEMO_GUIDE.md)

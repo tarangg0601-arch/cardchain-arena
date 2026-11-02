@@ -1,0 +1,15 @@
+{
+  "name": "tcg-hyperledger-fabric",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trading Card Game on Hyperledger Fabric: chaincode, backend API and React frontend",
+  "scripts": {
+    "setup": "npm --prefix chaincode install && npm --prefix backend install && npm --prefix frontend install",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "start:local": "npm --prefix backend run start:local",
+    "start:fabric": "npm --prefix backend run start:fabric",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test": "npm --prefix chaincode test && npm --prefix backend test && npm --prefix frontend test"
+  }
+}
